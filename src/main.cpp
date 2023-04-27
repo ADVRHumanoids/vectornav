@@ -277,14 +277,14 @@ int main(int argc, char * argv[])
   // calculate the least common multiple of the two rate and assure it is a
   // valid package rate, also calculate the imu and output strides
   int package_rate = 0;
-  for (int allowed_rate : {1, 2, 4, 5, 10, 20, 25, 40, 50, 100, 200, 0}) {
+  for (int allowed_rate : {1, 2, 4, 5, 10, 20, 25, 40, 50, 100, 200, 400, 0}) {
     package_rate = allowed_rate;
     if ((package_rate % async_output_rate) == 0 && (package_rate % imu_output_rate) == 0) break;
   }
   ROS_ASSERT_MSG(
     package_rate,
     "imu_output_rate (%d) or async_output_rate (%d) is not in 1, 2, 4, 5, 10, 20, 25, 40, 50, 100, "
-    "200 Hz",
+    "200, 400 Hz",
     imu_output_rate, async_output_rate);
   user_data.imu_stride = package_rate / imu_output_rate;
   user_data.output_stride = package_rate / async_output_rate;
