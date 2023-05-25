@@ -43,7 +43,7 @@
 #include "sensor_msgs/Temperature.h"
 #include "std_srvs/Empty.h"
 
-ros::Publisher pubIMU, pubMag, pubGPS, pubOdom, pubTemp, pubPres, pubIns;
+ros::Publisher pubIMU, pubMag, pubGPS, pubOdom, pubTemp, pubPres, pubIns, pubIMUXbot;
 ros::ServiceServer resetOdomSrv;
 
 XmlRpc::XmlRpcValue rpc_temp;
@@ -164,6 +164,7 @@ int main(int argc, char * argv[])
   pubTemp = n.advertise<sensor_msgs::Temperature>("vectornav/Temp", 1000);
   pubPres = n.advertise<sensor_msgs::FluidPressure>("vectornav/Pres", 1000);
   pubIns = n.advertise<vectornav::Ins>("vectornav/INS", 1000);
+  pubIMUXbot = n.advertise<sensor_msgs::Imu>("xbotcore/imu/imu_link", 1000);
 
   resetOdomSrv = n.advertiseService<std_srvs::Empty::Request, std_srvs::Empty::Response>(
     "reset_odom", boost::bind(&resetOdom, _1, _2, &user_data));
@@ -232,6 +233,7 @@ int main(int argc, char * argv[])
     // All other values seem to work fine.
     try {
       // Connect to sensor at it's default rate
+      //std::cout << defaultBaudrate << std::endl;
       if (defaultBaudrate != 128000 && SensorBaudrate != 128000) {
         vs.connect(SensorPort, defaultBaudrate);
         // Issues a change baudrate to the VectorNav sensor and then
@@ -764,10 +766,22 @@ void BinaryAsyncMessageReceived(void * userData, Packet & p, size_t index)
   ros::Time time = get_time_stamp(cd, user_data, ros_time);
 
   // IMU
-  if ((pkg_count % user_data->imu_stride) == 0 && pubIMU.getNumSubscribers() > 0) {
+  if ((pkg_count % user_data->imu_stride) == 0 && (pubIMU.getNumSubscribers() > 0 || pubIMUXbot.getNumSubscribers() > 0)) {
     sensor_msgs::Imu msgIMU;
     fill_imu_message(msgIMU, cd, time, user_data);
     pubIMU.publish(msgIMU);
+    
+//    publish imu to xbotcore topic, pose exprest srt NWU frame
+    sensor_msgs::Imu xbotMsgIMU = msgIMU;                          
+    tf2::Quaternion tf2_quat_ned(cd.quaternion()[0], cd.quaternion()[1], cd.quaternion()[2], cd.quaternion()[3]);       // vn::sensors::CompositeData cd seems to be ned
+    auto quat_msg_ned = tf2::toMsg(tf2_quat_ned);
+
+    xbotMsgIMU.orientation.x = quat_msg_ned.w;      // from ned to nwu
+    xbotMsgIMU.orientation.y = - quat_msg_ned.z;
+    xbotMsgIMU.orientation.z = quat_msg_ned.y;
+    xbotMsgIMU.orientation.w = - quat_msg_ned.x;
+    xbotMsgIMU.header.frame_id = "imu_link";		// lnk findable in urdf
+    pubIMUXbot.publish(xbotMsgIMU);     // publish to xbotcore, orientation wrt NWU
   }
 
   if ((pkg_count % user_data->output_stride) == 0) {
