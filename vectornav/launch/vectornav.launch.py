@@ -20,6 +20,9 @@ def generate_launch_description():
         package='vectornav', 
         executable='vn_sensor_msgs',
         output='screen',
+        remappings=[
+            ('vectornav/imu', '/xbotcore/imu/imu_link')
+            ],
         parameters=[os.path.join(this_dir, 'config', 'vectornav.yaml')])
 
     # Create the launch description and populate

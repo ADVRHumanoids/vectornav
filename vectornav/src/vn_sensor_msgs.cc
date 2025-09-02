@@ -46,7 +46,7 @@ VnSensorMsgs::VnSensorMsgs(const rclcpp::NodeOptions & options) : Node("vn_senso
   pub_time_syncin_ =
     this->create_publisher<sensor_msgs::msg::TimeReference>("vectornav/time_syncin", 10);
   pub_time_pps_ = this->create_publisher<sensor_msgs::msg::TimeReference>("vectornav/time_pps", 10);
-  pub_imu_ = this->create_publisher<sensor_msgs::msg::Imu>("vectornav/imu", 10);
+  pub_imu_ = this->create_publisher<sensor_msgs::msg::Imu>("vectornav/imu", rclcpp::SensorDataQoS().keep_last(1));
   pub_gnss_ = this->create_publisher<sensor_msgs::msg::NavSatFix>("vectornav/gnss", 10);
   pub_imu_uncompensated_ =
     this->create_publisher<sensor_msgs::msg::Imu>("vectornav/imu_uncompensated", 10);
@@ -100,26 +100,31 @@ static void convert_to_enu(
 {
   // NED to ENU conversion
   // swap x and y and negate z
+  // NOTE: hacked this to convert to NWU and leave gyro and acc in local frame
   if (use_compensated_measurements) {
-    msg_out.angular_velocity.x = msg_in->angularrate.y;
-    msg_out.angular_velocity.y = msg_in->angularrate.x;
-    msg_out.angular_velocity.z = -msg_in->angularrate.z;
+    msg_out.angular_velocity.x = msg_in->angularrate.x;
+    msg_out.angular_velocity.y = msg_in->angularrate.y;
+    msg_out.angular_velocity.z = msg_in->angularrate.z;
 
-    msg_out.linear_acceleration.x = msg_in->accel.y;
-    msg_out.linear_acceleration.y = msg_in->accel.x;
-    msg_out.linear_acceleration.z = -msg_in->accel.z;
+    msg_out.linear_acceleration.x = msg_in->accel.x;
+    msg_out.linear_acceleration.y = msg_in->accel.y;
+    msg_out.linear_acceleration.z = msg_in->accel.z;
   } else {
-    msg_out.angular_velocity.x = msg_in->imu_rate.y;
-    msg_out.angular_velocity.y = msg_in->imu_rate.x;
-    msg_out.angular_velocity.z = -msg_in->imu_rate.z;
+    msg_out.angular_velocity.x = msg_in->imu_rate.x;
+    msg_out.angular_velocity.y = msg_in->imu_rate.y;
+    msg_out.angular_velocity.z = msg_in->imu_rate.z;
 
-    msg_out.linear_acceleration.x = msg_in->imu_accel.y;
+    msg_out.linear_acceleration.x = msg_in->imu_accel.x;
     msg_out.linear_acceleration.y = msg_in->imu_accel.x;
-    msg_out.linear_acceleration.z = -msg_in->imu_accel.z;
+    msg_out.linear_acceleration.z = msg_in->imu_accel.z;
   }
 
+  
   msg_out.orientation = msg_in->quaternion;
-  msg_out.orientation.z = -msg_in->quaternion.z;
+  msg_out.orientation.x = msg_in->quaternion.w;
+  msg_out.orientation.y = -msg_in->quaternion.z;
+  msg_out.orientation.z = msg_in->quaternion.y;
+  msg_out.orientation.w = -msg_in->quaternion.x;
 }
 
 /** Convert VN common group data to ROS2 standard message types
