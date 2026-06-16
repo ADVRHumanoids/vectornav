@@ -115,7 +115,7 @@ static void convert_to_enu(
     msg_out.angular_velocity.z = msg_in->imu_rate.z;
 
     msg_out.linear_acceleration.x = msg_in->imu_accel.x;
-    msg_out.linear_acceleration.y = msg_in->imu_accel.x;
+    msg_out.linear_acceleration.y = msg_in->imu_accel.y;
     msg_out.linear_acceleration.z = msg_in->imu_accel.z;
   }
 
