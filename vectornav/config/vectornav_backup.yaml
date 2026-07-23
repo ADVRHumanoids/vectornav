@@ -27,11 +27,10 @@ vectornav:
     # Binary output register 1
     BO1:
       asyncMode: 1                   # ASYNCMODE_BOTH
-      rateDivisor: 40                # 20 Hz
-      commonField: 369
+      rateDivisor: 4                # 20 Hz
+      commonField: 0x7FFF
       timeField: 0x0000              # TIMEGROUP_NONE
       imuField: 0x0000               # IMUGROUP_NONE
-      gpsField: 575
       # set gpsField directly in source to enforce or condition
       attitudeField: 0x0000          # ATTITUDEGROUP_NONE
       # set insField directly in source to enforce or condition
