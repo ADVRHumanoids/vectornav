@@ -21,7 +21,8 @@ def generate_launch_description():
         executable='vn_sensor_msgs',
         output='screen',
         remappings=[
-            ('vectornav/imu', '/xbotcore/imu/imu_link')
+            ('vectornav/imu', '/xbotcore/imu/imu_link'),
+            ('vectornav/imu/base_link', '/xbotcore/imu/base_link'),
             ],
         parameters=[os.path.join(this_dir, 'config', 'vectornav.yaml')])
 
