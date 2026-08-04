@@ -232,7 +232,7 @@ void VnSensorMsgs::sub_vn_common(const vectornav_msgs::msg::CommonGroup::SharedP
     if (pub_imu_transformed_ && msg.header.frame_id != target_frame_) {
       try {
         const auto transform = tf_buffer_->lookupTransform(
-          target_frame_, msg.header.frame_id, rclcpp::Time(msg.header.stamp));
+          target_frame_, msg.header.frame_id, rclcpp::Time(0));
 
         sensor_msgs::msg::Imu transformed_msg;
         tf2::doTransform(msg, transformed_msg, transform);

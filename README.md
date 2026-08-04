@@ -42,7 +42,8 @@ to integrate with other ROS2 packages.
 
 The `target_frame` parameter optionally enables an additional transformed IMU topic. Its default
 value is `base_link`, which publishes on `vectornav/imu/base_link` when the incoming IMU frame is
-different and a transform is available at the measurement timestamp. The topic suffix is derived
+different and a transform is available. The latest transform is used because the IMU mounting is
+expected to be static. The topic suffix is derived
 from the configured frame name. Set `target_frame` to an empty string to disable this output. If
 the incoming IMU frame already matches `target_frame`, no transformed messages are published.
 
