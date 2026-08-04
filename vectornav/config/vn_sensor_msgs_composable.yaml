@@ -10,3 +10,4 @@ linear_acceleration_covariance: [0.01,  0.0,   0.0,
 magnetic_covariance: [0.01,  0.0,   0.0,
                      0.0,   0.01,  0.0,
                      0.0,   0.0,   0.01]
+target_frame: "base_link" # If it matches the imu_link or it is empty, no transformed IMU is published

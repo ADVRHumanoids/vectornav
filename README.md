@@ -40,6 +40,16 @@ via ROS parameters and publishes sensor data via custom ROS topics as close to r
 This node will convert the custom raw data topics into ROS2 sensor_msgs topics to make it easier 
 to integrate with other ROS2 packages. 
 
+The `target_frame` parameter optionally enables an additional transformed IMU topic. Its default
+value is `base_link`, which publishes on `vectornav/imu/base_link` when the incoming IMU frame is
+different and a transform is available at the measurement timestamp. The topic suffix is derived
+from the configured frame name. Set `target_frame` to an empty string to disable this output. If
+the incoming IMU frame already matches `target_frame`, no transformed messages are published.
+
+The transformation uses the standard ROS `tf2` IMU conversion. It rotates orientation, angular
+velocity, linear acceleration, and their applicable covariances; TF translation and lever-arm
+acceleration corrections are intentionally not applied.
+
 
 ## References 
 

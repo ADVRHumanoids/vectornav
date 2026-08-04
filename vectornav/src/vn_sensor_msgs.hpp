@@ -23,6 +23,8 @@
 #include <sensor_msgs/msg/time_reference.hpp>
 #include <string>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2_ros/buffer.hpp>
+#include <tf2_ros/transform_listener.hpp>
 #include <vectornav_msgs/msg/attitude_group.hpp>
 #include <vectornav_msgs/msg/common_group.hpp>
 #include <vectornav_msgs/msg/gps_group.hpp>
@@ -38,7 +40,7 @@ public:
   VnSensorMsgs(const rclcpp::NodeOptions & options);
 
 private:
-  void sub_vn_common(const vectornav_msgs::msg::CommonGroup::SharedPtr msg_in) const;
+  void sub_vn_common(const vectornav_msgs::msg::CommonGroup::SharedPtr msg_in);
   void sub_vn_time(const vectornav_msgs::msg::TimeGroup::SharedPtr msg_in) const;
   void sub_vn_imu(const vectornav_msgs::msg::ImuGroup::SharedPtr msg_in) const;
   void sub_vn_gps(const vectornav_msgs::msg::GpsGroup::SharedPtr msg_in);
@@ -59,6 +61,7 @@ inline static double deg2rad(double in) { return in * M_PI / 180.0; }
   rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr pub_time_syncin_;
   rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr pub_time_pps_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu_;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu_transformed_;
   rclcpp::Publisher<sensor_msgs::msg::NavSatFix>::SharedPtr pub_gnss_;
   rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr pub_imu_uncompensated_;
   rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr pub_magnetic_;
@@ -77,6 +80,9 @@ inline static double deg2rad(double in) { return in * M_PI / 180.0; }
   rclcpp::Subscription<vectornav_msgs::msg::GpsGroup>::SharedPtr sub_vn_gps2_;
 
   bool use_enu = true;
+  std::string target_frame_;
+  std::unique_ptr<tf2_ros::Buffer> tf_buffer_;
+  std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
 
   /// Default orientation Covariance
   const std::vector<double> orientation_covariance_ = {0.0000, 0.0000, 0.0000, 0.0000, 0.0000,

@@ -17,6 +17,7 @@
 #include <string>
 
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
+#include "tf2_sensor_msgs/tf2_sensor_msgs.hpp"
 
 using namespace std::chrono_literals;
 
@@ -29,6 +30,7 @@ VnSensorMsgs::VnSensorMsgs(const rclcpp::NodeOptions & options) : Node("vn_senso
 {
   // Parameters
   declare_parameter<bool>("use_enu", true);
+  declare_parameter<std::string>("target_frame", "base_link");
   declare_parameter<std::vector<double>>("orientation_covariance", orientation_covariance_);
   declare_parameter<std::vector<double>>(
     "angular_velocity_covariance", angular_velocity_covariance_);
@@ -92,6 +94,22 @@ VnSensorMsgs::VnSensorMsgs(const rclcpp::NodeOptions & options) : Node("vn_senso
 
   //enu frame option
   use_enu = get_parameter("use_enu").as_bool();
+
+  target_frame_ = get_parameter("target_frame").as_string();
+  if (!target_frame_.empty()) {
+    auto topic_frame = target_frame_;
+    topic_frame.erase(0, topic_frame.find_first_not_of('/'));
+    if (topic_frame.empty()) {
+      RCLCPP_ERROR(get_logger(), "Parameter 'target_frame' must not contain only '/' characters");
+      target_frame_.clear();
+    } else {
+      const auto transformed_imu_topic = "vectornav/imu/" + topic_frame;
+      pub_imu_transformed_ = create_publisher<sensor_msgs::msg::Imu>(
+        transformed_imu_topic, rclcpp::SensorDataQoS().keep_last(1));
+      tf_buffer_ = std::make_unique<tf2_ros::Buffer>(get_clock());
+      tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_, this, false);
+    }
+  }
 }
 
 static void convert_to_enu(
@@ -130,7 +148,7 @@ static void convert_to_enu(
 /** Convert VN common group data to ROS2 standard message types
    *
    */
-void VnSensorMsgs::sub_vn_common(const vectornav_msgs::msg::CommonGroup::SharedPtr msg_in) const
+void VnSensorMsgs::sub_vn_common(const vectornav_msgs::msg::CommonGroup::SharedPtr msg_in)
 {
   // RCLCPP_INFO(get_logger(), "Frame ID: '%s'", msg_in->header.frame_id.c_str());
 
@@ -210,6 +228,25 @@ void VnSensorMsgs::sub_vn_common(const vectornav_msgs::msg::CommonGroup::SharedP
       "linear_acceleration_covariance", msg.linear_acceleration_covariance);
 
     pub_imu_->publish(msg);
+
+    if (pub_imu_transformed_ && msg.header.frame_id != target_frame_) {
+      try {
+        const auto transform = tf_buffer_->lookupTransform(
+          target_frame_, msg.header.frame_id, rclcpp::Time(msg.header.stamp));
+
+        sensor_msgs::msg::Imu transformed_msg;
+        tf2::doTransform(msg, transformed_msg, transform);
+        transformed_msg.header.stamp = msg.header.stamp;
+        transformed_msg.header.frame_id = target_frame_;
+
+        pub_imu_transformed_->publish(transformed_msg);
+      } catch (const tf2::TransformException & ex) {
+        RCLCPP_WARN_THROTTLE(
+          get_logger(), *get_clock(), 5000,
+          "Could not transform IMU message from '%s' to '%s': %s",
+          msg.header.frame_id.c_str(), target_frame_.c_str(), ex.what());
+      }
+    }
   }
 
   // IMU (Uncompensated)
